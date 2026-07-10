@@ -1,0 +1,13 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "vaultmind-taxonomy"
+version = "0.1.0"
+description = "Shared contract for VaultMind's vuln taxonomy: class IDs, ClassSpec schema, and the RunResult the oracles judge. IP-free — no oracles, no prompts."
+requires-python = ">=3.10"
+dependencies = []
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/vaultmind_taxonomy"]

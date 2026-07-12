@@ -42,6 +42,29 @@ class RunResult:
     # prior per-tx results for multi-tx exploits (front-running, TOCTOU); [] if single-tx
     steps: list = field(default_factory=list)
 
+    # ── dict-style read access ───────────────────────────────────────────────
+    # Lets a bare `check(result, spec)` oracle (the synthesized/AI form, written
+    # against plain dicts) read a RunResult object unchanged, e.g.
+    # `result.get("tx_succeeded")`, `result.get("accounts_before", {})`. Unknown
+    # keys return the default, so an oracle's optional fallbacks (e.g.
+    # `result.get("target_tags")`) are safe. Attribute access (`r.tx_succeeded`)
+    # keeps working for the class-based oracles — this is purely additive.
+    def get(self, key, default=None):
+        return getattr(self, key, default)
+
+    def __getitem__(self, key):
+        try:
+            return getattr(self, key)
+        except AttributeError:
+            raise KeyError(key) from None
+
+    def __contains__(self, key) -> bool:
+        return hasattr(self, key)
+
+    def to_dict(self) -> dict:
+        from dataclasses import asdict
+        return asdict(self)
+
     @classmethod
     def from_dict(cls, d: dict, *, accounts: dict | None = None) -> "RunResult":
         """Build a RunResult from a raw result dict — the ONE deserializer shared

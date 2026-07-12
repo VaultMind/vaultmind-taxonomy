@@ -300,6 +300,119 @@ TAXONOMY: dict[str, ClassSpec] = {
         ),
         severity_default="high",
     ),
+    "SOLANA-SEC-V14": ClassSpec(
+        id="SOLANA-SEC-V14",
+        name="arithmetic-unit-mismatch",
+        display_name="Arithmetic Unit Mismatch",
+        description=(
+            "A quantity is written to state in one unit but later combined with a value in a "
+            "different unit. A handler scales or divides an input at write time (e.g. stores a "
+            "duration as `window = slots / LEADER_SLOT_WINDOW`, a window count) and then, at "
+            "read time, adds or compares that stored value against a raw quantity of the "
+            "original unit (e.g. `deposit_slot + window <= current_slot`, mixing window counts "
+            "with raw slots). The dimensional mismatch makes a threshold — a vesting/lockup/"
+            "timeout boundary — fire at the wrong magnitude (e.g. 4x too early). An attacker "
+            "acts on the premature boundary: withdrawing, claiming, or unlocking before the "
+            "real deadline. The fix keeps every operand in the same unit domain (multiply back "
+            "before storing, or store the raw value and scale consistently at every use)."
+        ),
+        audit_question=(
+            "Is any stored quantity written in one unit (scaled/divided/normalized) but later "
+            "added to or compared against a value in a different unit, so a threshold check "
+            "(vesting/lockup/timeout) fires at the wrong magnitude?"
+        ),
+        severity_default="high",
+    ),
+    "SOLANA-SEC-V15": ClassSpec(
+        id="SOLANA-SEC-V15",
+        name="missing-state-update",
+        display_name="Missing State Update",
+        description=(
+            "A per-account accounting value that MUST be refreshed before a balance/share "
+            "change (a reward-factor snapshot, accrued fees, a checkpoint) is updated on one "
+            "account but omitted on another involved in the same operation. A transfer, for "
+            "example, preprocesses the source position but never the destination, so the "
+            "destination keeps a stale snapshot and is then credited rewards/fees as if it had "
+            "held its new balance for the whole prior period — value it never earned. An "
+            "attacker cycles balances through the un-refreshed account repeatedly, fabricating "
+            "a fresh unearned payout on each hop and draining the pool's accumulated fees. The "
+            "fix refreshes EVERY account whose accounting depends on the change before applying "
+            "it (cheap/no-op on an empty account, but it resets the snapshot to the present)."
+        ),
+        audit_question=(
+            "Does any handler skip a required per-account state refresh (reward snapshot / fee "
+            "accrual / checkpoint) on one account while performing it on another before "
+            "changing balances, letting a stale value be reused to claim unearned value?"
+        ),
+        severity_default="high",
+    ),
+    "SOLANA-SEC-V16": ClassSpec(
+        id="SOLANA-SEC-V16",
+        name="incorrect-boundary-check",
+        display_name="Incorrect Boundary Check",
+        description=(
+            "Two mutually-exclusive phases or time windows (deposit vs claim, open vs settle) "
+            "are gated by inequalities that OVERLAP at the shared boundary — `<=` on one side "
+            "and `>=` on the other against the same value — so at the exact boundary (e.g. "
+            "`end_time == claim_time`) both phases are simultaneously active. In that one-slot "
+            "overlap an attacker performs both actions atomically: deposit to inflate their "
+            "share and immediately claim the disproportionate reward, typically with a flash "
+            "loan, then withdraw and repay in the same transaction. The fix uses strict "
+            "inequalities (`now < end_time`, `now >= claim_time`) so every value maps to "
+            "exactly one active phase and the windows cannot overlap."
+        ),
+        audit_question=(
+            "Do two exclusive phases or time windows use inequalities that overlap at the "
+            "boundary (`<=` and `>=` against the same value), letting both be active in the "
+            "same slot/timestamp and so in one transaction?"
+        ),
+        severity_default="high",
+    ),
+    "SOLANA-SEC-V17": ClassSpec(
+        id="SOLANA-SEC-V17",
+        name="missing-canonical-account-validation",
+        display_name="Missing Canonical Account Validation",
+        description=(
+            "A handler trusts a supplied account by its OWNER (program) alone, without checking "
+            "that it is the canonical, expected instance — and where it overwrites state from "
+            "that account it enforces only freshness, not monotonicity/versioning. It accepts, "
+            "for example, any price account owned by the oracle program instead of pinning the "
+            "one canonical feed key, and updates a stored price whenever the source is recent "
+            "rather than strictly newer. An attacker supplies their own program-owned account "
+            "with forged contents (a self-published oracle) or replays an older-but-still-fresh "
+            "update to roll the trusted value back or spoof it. The fix pins the canonical "
+            "account key (or a PDA derived from fixed seeds) and adds a monotonicity/version "
+            "guard before overwriting state."
+        ),
+        audit_question=(
+            "Does any handler trust a supplied account based only on its owner (not a pinned "
+            "canonical key/PDA), or overwrite state from it without a monotonicity/version "
+            "check, so a substituted or stale-but-fresh account is accepted?"
+        ),
+        severity_default="high",
+    ),
+    "SOLANA-SEC-V18": ClassSpec(
+        id="SOLANA-SEC-V18",
+        name="missing-reference-count-validation",
+        display_name="Missing Reference Count Validation",
+        description=(
+            "A parent account can be closed, reinitialized, or repurposed while child accounts "
+            "still store a reference (its pubkey) to it, because the protocol tracks no active "
+            "dependencies — no reference count, no outstanding-child check. The child is left "
+            "holding a dangling reference to freed or reallocated memory; an attacker reuses the "
+            "closed parent's address for a substituted account, or drives child handlers that "
+            "follow the now-invalid reference to corrupt invariants or siphon value. The fix "
+            "refuses to close a parent while any child still references it (a reference count "
+            "or non-empty-dependents check), mirroring how Token-2022 forbids closing a mint "
+            "whose token supply is non-zero."
+        ),
+        audit_question=(
+            "Can a parent/owner account be closed or reinitialized while child accounts still "
+            "store a reference to it, with no reference-count or outstanding-dependent check "
+            "guarding the close?"
+        ),
+        severity_default="high",
+    ),
     "SOLANA-SEC-V19": ClassSpec(
         id="SOLANA-SEC-V19",
         name="integer-truncation-inconsistency",

@@ -22,7 +22,9 @@ class RunResult:
     compute_units: int | None = None        # total compute units consumed
     signers: list = field(default_factory=list)  # pubkeys that signed the tx
     logs: list = field(default_factory=list)     # program log lines
-
+    # Contextual metadata
+    slot: int | None = None                 # Slot number the transaction was processed in
+    unix_timestamp: int | None = None      
     # ── 2. What did it change? ───────────────────────────────────────────────
     accounts: dict = field(default_factory=dict)  # alias -> resolved pubkey
     # alias -> {program_id, seeds:[hex], bump} — how a PDA was derived (bump/seed bugs)
@@ -53,6 +55,8 @@ class RunResult:
             error_code=d.get("error_code"),
             failed_program=d.get("failed_program"),
             error=d.get("error"),
+            slot=d.get("slot"),               
+            unix_timestamp=d.get("unix_timestamp"), 
             compute_units=d.get("compute_units"),
             signers=list(d.get("signers") or []),
             logs=list(d.get("logs") or []),

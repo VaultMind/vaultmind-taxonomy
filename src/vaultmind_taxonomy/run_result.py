@@ -12,7 +12,7 @@ for a correctness judge. `RunResult.from_dict` is the ONE shared deserializer
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 
 
 @dataclass
@@ -144,6 +144,10 @@ class RunResult:
     return_data: ReturnData | None = None
     # prior per-tx results for multi-tx exploits (front-running, TOCTOU); [] if single-tx
     steps: list["RunResult"] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        """Recursively serialize to a plain dict (nested dataclasses included)."""
+        return asdict(self)
 
     @classmethod
     def from_dict(cls, d: dict, *, accounts: dict | None = None) -> "RunResult":

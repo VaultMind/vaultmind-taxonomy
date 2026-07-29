@@ -9,6 +9,7 @@ from __future__ import annotations
 from vaultmind_taxonomy.data import TAXONOMY
 from vaultmind_taxonomy.exploit_spec import (
     ExploitSpec,
+    Invariant,
     ProgramSpec,
     PdaSpec,
     SetupAccount,
@@ -33,7 +34,7 @@ __all__ = [
     "RunResult", "AccountSnapshot", "TraceNode", "TraceAccount", "TokenBalance", "ReturnData",
     # exploit spec (the intent)
     "ExploitSpec", "SpecInstruction", "SpecAccount", "SetupAccount", "PdaSpec", "ProgramSpec",
-    "ROLES", "tagged",
+    "Invariant", "ROLES", "tagged",
     # class registry
     "ClassSpec", "OracleFn", "CLASS_IDS", "TAXONOMY",
 ]
